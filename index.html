@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SafeToken 代币管理后台</title>
+    <!-- 引入 Ethers.js 库，用于和区块链交互 -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #8247E5; margin-bottom: 30px; }
+        h3 { border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-top: 30px; color: #555; }
+        .section { margin-bottom: 25px; padding: 15px; background: #fafafa; border-radius: 8px; border: 1px solid #eaeaea; }
+        input { width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
+        button { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.3s; }
+        .btn-primary { background-color: #8247E5; color: white; }
+        .btn-primary:hover { background-color: #6b3bc2; }
+        .btn-success { background-color: #28a745; color: white; }
+        .btn-success:hover { background-color: #218838; }
+        .btn-danger { background-color: #dc3545; color: white; }
+        .btn-danger:hover { background-color: #c82333; }
+        .btn-warning { background-color: #ffc107; color: #333; }
+        .status { text-align: center; margin: 10px 0; font-weight: bold; color: #666; }
+        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 SafeToken 管理后台</h1>
+
+        <!-- 1. 钱包连接区 -->
+        <div class="section">
+            <button id="connectBtn" class="btn-primary">连接 MetaMask 钱包</button>
+            <p id="walletStatus" class="status">未连接钱包</p>
+        </div>
+
+        <!-- 2. 合约加载区 -->
+        <div class="section">
+            <h3>📝 加载代币合约</h3>
+            <input type="text" id="contractAddress" placeholder="请输入你的代币合约地址 (0x...)">
+            <button onclick="loadContract()" class="btn-primary">加载合约</button>
+        </div>
+
+        <!-- 3. 核心控制区 (加载成功后显示) -->
+        <div id="controls" style="display:none;">
+            
+            <!-- 开启交易 -->
+            <div class="section">
+                <h3>🟢 交易开关</h3>
+                <button onclick="enableTrading()" class="btn-success">开启交易 (Launch)</button>
+            </div>
+
+            <!-- 修改基础税费 -->
+            <div class="section">
+                <h3>💰 修改基础税费 (单位: %)</h3>
+                <div class="grid-2">
+                    <input type="number" id="buyTax" placeholder="买入税 (如 5)">
+                    <input type="number" id="sellTax" placeholder="卖出税 (如 5)">
+                </div>
+                <button onclick="setTaxes()" class="btn-primary">更新基础税费</button>
+            </div>
+
+            <!-- 修改防狙击参数 -->
+            <div class="section">
+                <h3>🎯 修改防狙击参数</h3>
+                <input type="number" id="snipeDuration" placeholder="防狙击持续时间 (秒，如 600)">
+                <div class="grid-2">
+                    <input type="number" id="snipeBuyTax" placeholder="防狙击买入税 (如 99)">
+                    <input type="number" id="snipeSellTax" placeholder="防狙击卖出税 (如 99)">
+                </div>
+                <button onclick="setAntiSnipe()" class="btn-warning">更新防狙击设置</button>
+            </div>
+
+            <!-- 修改限额 -->
+            <div class="section">
+                <h3>📊 修改持仓与交易限额</h3>
+                <p style="font-size: 12px; color: #888;">注意：请填写具体的代币数量（带18位小数的原始数值）</p>
+                <input type="text" id="maxWallet" placeholder="单地址最大持仓量">
+                <input type="text" id="maxTx" placeholder="单笔最大交易量">
+                <button onclick="setLimits()" class="btn-primary">更新限额</button>
+            </div>
+
+            <!-- 黑名单管理 -->
+            <div class="section">
+                <h3>🚫 黑名单管理</h3>
+                <input type="text" id="blackAddr" placeholder="输入要操作的钱包地址">
+                <div class="grid-2">
+                    <button onclick="setBlacklist(true)" class="btn-danger">拉黑地址</button>
+                    <button onclick="setBlacklist(false)" class="btn-success">解除拉黑</button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        let signer, contract;
+        // 你的 SafeToken 合约 ABI (包含了所有可调用的函数接口)
+        const abi = [
+            "function tradingEnabled() view returns (bool)",
+            "function enableTrading() external",
+            "function setTaxes(uint256 _buy, uint256 _sell) external",
+            "function setAntiSnipeParams(uint256 _duration, uint256 _buyTax, uint256 _sellTax) external",
+            "function setLimits(uint256 _maxWallet, uint256 _maxTx) external",
+            "function setBlacklist(address[] calldata accounts, bool value) external"
+        ];
+
+        // 1. 连接 MetaMask 钱包
+        document.getElementById('connectBtn').addEventListener('click', async () => {
+            if (window.ethereum) {
+                try {
+                    const provider = new ethers.providers.Web3Provider(window.ethereum);
+                    await provider.send("eth_requestAccounts", []);
+                    signer = provider.getSigner();
+                    const address = await signer.getAddress();
+                    document.getElementById('walletStatus').innerText = "✅ 已连接: " + address;
+                    document.getElementById('connectBtn').style.display = 'none';
+                } catch (error) {
+                    alert("连接钱包失败: " + error.message);
+                }
+            } else {
+                alert("请先安装 MetaMask 钱包插件！");
+            }
+        });
+
+        // 2. 加载代币合约
+        function loadContract() {
+            const addr = document.getElementById('contractAddress').value;
+            if (!signer) return alert("请先连接钱包！");
+            if (!addr) return alert("请输入合约地址！");
+            try {
+                contract = new ethers.Contract(addr, abi, signer);
+                document.getElementById('controls').style.display = 'block';
+                alert("合约加载成功！现在可以管理代币了。");
+            } catch (e) {
+                alert("加载失败，请检查合约地址是否正确！");
+            }
+        }
+
+        // 3. 开启交易
+        async function enableTrading() {
+            if (!confirm("确定要开启交易吗？开启后将无法关闭，且防狙击倒计时将开始！")) return;
+            try {
+                const tx = await contract.enableTrading();
+                alert("交易正在开启，哈希: " + tx.hash);
+                await tx.wait();
+                alert("✅ 交易已成功开启！");
+            } catch (e) { alert("操作失败: " + e.message); }
+        }
+
+        // 4. 修改基础税费
+        async function setTaxes() {
+            const buy = document.getElementById('buyTax').value;
+            const sell = document.getElementById('sellTax').value;
+            if (!buy || !sell) return alert("请输入买入和卖出税率！");
+            try {
+                // 注意：合约要求输入的是 basis points (100 = 1%)，这里直接按百分比输入，代码里帮你乘100
+                const tx = await contract.setTaxes(buy * 100, sell * 100);
+                await tx.wait();
+                alert("✅ 基础税费修改成功！");
+            } catch (e) { alert("操作失败: " + e.message); }
+        }
+
+        // 5. 修改防狙击参数
+        async function setAntiSnipe() {
+            const duration = document.getElementById('snipeDuration').value;
+            const buyTax = document.getElementById('snipeBuyTax').value;
+            const sellTax = document.getElementById('snipeSellTax').value;
+            if (!duration || !buyTax || !sellTax) return alert("请填写完整的防狙击参数！");
+            try {
+                const tx = await contract.setAntiSnipeParams(duration, buyTax * 100, sellTax * 100);
+                await tx.wait();
+                alert("✅ 防狙击参数修改成功！");
+            } catch (e) { alert("操作失败: " + e.message); }
+        }
+
+        // 6. 修改限额
+        async function setLimits() {
+            const maxWallet = document.getElementById('maxWallet').value;
+            const maxTx = document.getElementById('maxTx').value;
+            if (!maxWallet || !maxTx) return alert("请输入限额数值！");
+            try {
+                const tx = await contract.setLimits(maxWallet, maxTx);
+                await tx.wait();
+                alert("✅ 限额修改成功！");
+            } catch (e) { alert("操作失败: " + e.message); }
+        }
+
+        // 7. 黑名单管理
+        async function setBlacklist(isBlacklisted) {
+            const addr = document.getElementById('blackAddr').value;
+            if (!addr) return alert("请输入要操作的钱包地址！");
+            try {
+                // 合约要求传入地址数组，所以这里用 [addr]
+                const tx = await contract.setBlacklist([addr], isBlacklisted);
+                await tx.wait();
+                alert(isBlacklisted ? "✅ 已成功拉黑该地址！" : "✅ 已成功解除拉黑！");
+            } catch (e) { alert("操作失败: " + e.message); }
+        }
+    </script>
+</body>
+</html>
