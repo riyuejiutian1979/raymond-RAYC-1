@@ -1,203 +1,610 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SafeToken 代币管理后台</title>
-    <!-- 引入 Ethers.js 库，用于和区块链交互 -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
-    <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f0f2f5; padding: 20px; color: #333; }
-        .container { max-width: 800px; margin: 0 auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #8247E5; margin-bottom: 30px; }
-        h3 { border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; margin-top: 30px; color: #555; }
-        .section { margin-bottom: 25px; padding: 15px; background: #fafafa; border-radius: 8px; border: 1px solid #eaeaea; }
-        input { width: 100%; padding: 12px; margin: 8px 0; box-sizing: border-box; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; }
-        button { width: 100%; padding: 12px; margin-top: 10px; border: none; border-radius: 6px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background 0.3s; }
-        .btn-primary { background-color: #8247E5; color: white; }
-        .btn-primary:hover { background-color: #6b3bc2; }
-        .btn-success { background-color: #28a745; color: white; }
-        .btn-success:hover { background-color: #218838; }
-        .btn-danger { background-color: #dc3545; color: white; }
-        .btn-danger:hover { background-color: #c82333; }
-        .btn-warning { background-color: #ffc107; color: #333; }
-        .status { text-align: center; margin: 10px 0; font-weight: bold; color: #666; }
-        .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+    <title>Raymond Chain - 雷蒙德区块链科技</title>
+
+    <!-- ========== TP钱包收藏专用Logo配置（核心） ========== -->
+    <link rel="icon" type="image/png" sizes="192x192" href="https://i.imgs.ovh/2026/06/08/e45aa2b352b7d8d0cd1e4b7bcd32d97d.png">
+    <link rel="apple-touch-icon" sizes="180x180" href="https://i.imgs.ovh/2026/06/08/e45aa2b352b7d8d0cd1e4b7bcd32d97d.png">
+    <link rel="shortcut icon" href="https://i.imgs.ovh/2026/06/08/e45aa2b352b7d8d0cd1e4b7bcd32d97d.png">
+    <link rel="manifest" href="data:application/json;base64,eyJuYW1lIjoiUmF5bW9uZCBDaGFpbiIsInNob3J0X25hbWUiOiJSQ0giLCJzdGFydF91cmwiOiIvIiwiZGlzcGxheSI6InN0YW5kYWxvbmQiLCJiYWNrZ3JvdW5kX2NvbG9yIjoiIzBGMTdBIiwidGhlbWVfY29sb3IiOiIjN0UyMkNFIiwiaWNvbnMiOlt7InNyYyI6Imh0dHBzOi8vaS5pbWdzLm92aC8yMDI2LzA2LzA4L2U0NWFhMmIzNTJiN2Q4ZDBjZDFlNGI3YmNkMzJkOTdkLnBuZyIsInNpemVzIjoiMTkyeDE5MiIsInR5cGUiOiJpbWFnZS9wbmcifV19">
+    <meta name="theme-color" content="#7E22CE">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Raymond Chain">
+
+    <!-- 外部资源 -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+    
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#0F172A',
+                        secondary: '#7E22CE',
+                        accent: '#10B981',
+                        dark: '#020617',
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    
+    <!-- 自定义样式 -->
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .text-gradient {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+            }
+            .bg-glass {
+                backdrop-filter: blur(12px);
+                -webkit-backdrop-filter: blur(12px);
+            }
+            .animate-float {
+                animation: float 3s ease-in-out infinite;
+            }
+            .animate-pulse-slow {
+                animation: pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            .lang-zh { display: none; }
+            .lang-en { display: inline; }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+
+        #particles-js {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            z-index: 0;
+        }
+        /* 左上角固定Logo */
+        .fixed-top-logo {
+            position: fixed;
+            top: 16px;
+            left: 16px;
+            width: 48px;
+            height: 48px;
+            z-index: 9999;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        }
     </style>
 </head>
-<body>
-    <div class="container">
-        <h1>🚀 SafeToken 管理后台</h1>
+<body class="font-inter bg-primary text-gray-200 overflow-x-hidden">
+    <!-- 页面左上角固定Logo -->
+    <img src="https://i.imgs.ovh/2026/06/08/e45aa2b352b7d8d0cd1e4b7bcd32d97d.png" alt="Logo" class="fixed-top-logo">
 
-        <!-- 1. 钱包连接区 -->
-        <div class="section">
-            <button id="connectBtn" class="btn-primary">连接 MetaMask 钱包</button>
-            <p id="walletStatus" class="status">未连接钱包</p>
+    <!-- 导航栏 -->
+    <header class="fixed w-full top-0 z-50 transition-all duration-300" id="navbar">
+        <div class="bg-dark/80 bg-glass border-b border-gray-800">
+            <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+                <a href="#" class="flex items-center gap-2">
+                    <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-secondary to-accent flex items-center justify-center">
+                        <span class="text-white text-xl font-bold">R</span>
+                    </div>
+                    <h1 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 text-gradient">
+                        Raymond Chain
+                    </h1>
+                </a>
+
+                <!-- 桌面端导航 -->
+                <nav class="hidden md:flex items-center gap-8">
+                    <a href="#home" class="hover:text-accent transition-colors">
+                        <span class="lang-zh">首页</span>
+                        <span class="lang-en">Home</span>
+                    </a>
+                    <a href="#about" class="hover:text-accent transition-colors">
+                        <span class="lang-zh">关于我们</span>
+                        <span class="lang-en">About Us</span>
+                    </a>
+                    <a href="#ryt" class="hover:text-accent transition-colors">
+                        <span class="lang-zh">RAYC生态</span>
+                        <span class="lang-en">RAYC Ecosystem</span>
+                    </a>
+                    <a href="#tech" class="hover:text-accent transition-colors">
+                        <span class="lang-zh">技术优势</span>
+                        <span class="lang-en">Tech Advantages</span>
+                    </a>
+                    <a href="https://www.raymondchain.com/raymond-rayc/nodes.html" target="_blank" class="hover:text-accent transition-colors">
+                        <span class="lang-zh">全球节点</span>
+                        <span class="lang-en">Nodes</span>
+                    </a>
+                    <a href="https://www.raymondchain.com/raymond-rayc/planning.html" target="_blank" class="hover:text-accent transition-colors">
+                        <span class="lang-zh">NFT</span>
+                        <span class="lang-en">NFT</span>
+                    </a>
+                    <a href="https://www.raymondchain.com/raymond-rayc/team.html" target="_blank" class="hover:text-accent transition-colors">
+                        <span class="lang-zh">团队建设</span>
+                        <span class="lang-en">Team</span>
+                    </a>
+                    <a href="#contact" class="hover:text-accent transition-colors">
+                        <span class="lang-zh">联系我们</span>
+                        <span class="lang-en">Contact</span>
+                    </a>
+                    <button id="langBtn" class="px-3 py-1 rounded border border-gray-600 hover:border-accent transition-colors">
+                        <span class="lang-zh">EN</span>
+                        <span class="lang-en">中文</span>
+                    </button>
+                    <a href="https://www.rytc.net/raymond-rayc/white-paper.html" target="_blank" rel="noopener noreferrer" class="px-5 py-2 rounded-full bg-gradient-to-r from-secondary to-accent text-white font-semibold hover:shadow-lg hover:shadow-secondary/30 transition-all">
+                        <span class="lang-zh">白皮书</span>
+                        <span class="lang-en">Whitepaper</span>
+                    </a>
+                </nav>
+
+                <!-- 移动端菜单按钮 -->
+                <div class="flex items-center gap-4 md:hidden">
+                    <button id="langBtnMobile" class="px-3 py-1 rounded border border-gray-600 text-sm">
+                        <span class="lang-zh">EN</span>
+                        <span class="lang-en">中文</span>
+                    </button>
+                    <button class="text-2xl" id="menuBtn">
+                        <i class="fa fa-bars"></i>
+                    </button>
+                </div>
+            </div>
         </div>
 
-        <!-- 2. 合约加载区 -->
-        <div class="section">
-            <h3>📝 加载代币合约</h3>
-            <input type="text" id="contractAddress" placeholder="请输入你的代币合约地址 (0x...)">
-            <button onclick="loadContract()" class="btn-primary">加载合约</button>
+        <!-- 移动端导航菜单 -->
+        <div class="md:hidden hidden bg-dark/95 bg-glass absolute w-full border-b border-gray-800" id="mobileMenu">
+            <div class="container mx-auto px-4 py-4 flex flex-col gap-4">
+                <a href="#home" class="py-2 hover:text-accent transition-colors">
+                    <span class="lang-zh">首页</span>
+                    <span class="lang-en">Home</span>
+                </a>
+                <a href="#about" class="py-2 hover:text-accent transition-colors">
+                    <span class="lang-zh">关于我们</span>
+                    <span class="lang-en">About Us</span>
+                </a>
+                <a href="#ryt" class="py-2 hover:text-accent transition-colors">
+                    <span class="lang-zh">RAYC生态</span>
+                    <span class="lang-en">RAYC Ecosystem</span>
+                </a>
+                <a href="#tech" class="py-2 hover:text-accent transition-colors">
+                    <span class="lang-zh">技术优势</span>
+                    <span class="lang-en">Tech Advantages</span>
+                </a>
+                <a href="https://www.raymondchain.com/raymond-rayc/nodes.html" target="_blank" class="py-2 hover:text-accent transition-colors">
+                    <span class="lang-zh">全球节点</span>
+                    <span class="lang-en">Nodes</span>
+                </a>
+                <a href="https://www.raymondchain.com/raymond-rayc/planning.html" target="_blank" class="py-2 hover:text-accent transition-colors">
+                    <span class="lang-zh">NFT</span>
+                    <span class="lang-en">NFT</span>
+                </a>
+                <a href="https://www.raymondchain.com/raymond-rayc/team.html" target="_blank" class="py-2 hover:text-accent transition-colors">
+                    <span class="lang-zh">团队建设</span>
+                    <span class="lang-en">Team</span>
+                </a>
+                <a href="#contact" class="py-2 hover:text-accent transition-colors">
+                    <span class="lang-zh">联系我们</span>
+                    <span class="lang-en">Contact</span>
+                </a>
+                <a href="https://www.raymondchain.com/white-paper.html" target="_blank" rel="noopener noreferrer" class="px-5 py-2 rounded-full bg-gradient-to-r from-secondary to-accent text-white font-semibold w-full">
+                    <span class="lang-zh">白皮书</span>
+                    <span class="lang-en">Whitepaper</span>
+                </a>
+            </div>
         </div>
+    </header>
 
-        <!-- 3. 核心控制区 (加载成功后显示) -->
-        <div id="controls" style="display:none;">
-            
-            <!-- 开启交易 -->
-            <div class="section">
-                <h3>🟢 交易开关</h3>
-                <button onclick="enableTrading()" class="btn-success">开启交易 (Launch)</button>
-            </div>
-
-            <!-- 修改基础税费 -->
-            <div class="section">
-                <h3>💰 修改基础税费 (单位: %)</h3>
-                <div class="grid-2">
-                    <input type="number" id="buyTax" placeholder="买入税 (如 5)">
-                    <input type="number" id="sellTax" placeholder="卖出税 (如 5)">
+    <!-- 首页英雄区 -->
+    <section id="home" class="relative min-h-screen flex items-center pt-20 overflow-hidden">
+        <div id="particles-js"></div>
+        <div class="container mx-auto px-4 py-20 relative z-10">
+            <div class="flex flex-col lg:flex-row items-center gap-12">
+                <div class="lg:w-1/2 space-y-6">
+                    <h2 class="text-[clamp(2.5rem,5vw,4rem)] font-bold leading-tight">
+                        <span class="lang-zh">未来<span class="bg-gradient-to-r from-blue-400 to-purple-500 text-gradient">区块链</span>由雷蒙德定义</span>
+                        <span class="lang-en">The Future <span class="bg-gradient-to-r from-blue-400 to-purple-500 text-gradient">Blockchain</span> Defined by Raymond</span>
+                    </h2>
+                    <p class="text-lg text-gray-300 leading-relaxed">
+                        <span class="lang-zh">Raymond Chain 是全球领先的区块链科技公司，专注于构建去中心化生态系统，以顶尖技术为驱动，打造安全、高效、普惠的区块链价值网络。</span>
+                        <span class="lang-en">Raymond Chain is a world-leading blockchain tech company. We focus on building decentralized ecosystems and creating a secure, efficient and inclusive blockchain value network.</span>
+                    </p>
+                    <div class="flex flex-wrap gap-4">
+                        <a href="https://www.raymondchain.com/raymond-rayc/web-5.html" target="_blank" rel="noopener noreferrer" class="px-8 py-3 rounded-full bg-gradient-to-r from-secondary to-accent text-white font-semibold text-lg hover:shadow-lg hover:shadow-secondary/30 transition-all">
+                            <span class="lang-zh">生态社区</span>
+                            <span class="lang-en">Eco-community</span>
+                        </a>
+                        <a href="https://www.raymondchain.com/raymond-rayc/0275.html" target="_blank" rel="noopener noreferrer" class="px-8 py-3 rounded-full border border-gray-600 text-lg hover:border-accent hover:text-accent transition-all">
+                            <span class="lang-zh">RAYC团队建设</span>
+                            <span class="lang-en">Team building</span>
+                        </a>
+                    </div>
                 </div>
-                <button onclick="setTaxes()" class="btn-primary">更新基础税费</button>
-            </div>
-
-            <!-- 修改防狙击参数 -->
-            <div class="section">
-                <h3>🎯 修改防狙击参数</h3>
-                <input type="number" id="snipeDuration" placeholder="防狙击持续时间 (秒，如 600)">
-                <div class="grid-2">
-                    <input type="number" id="snipeBuyTax" placeholder="防狙击买入税 (如 99)">
-                    <input type="number" id="snipeSellTax" placeholder="防狙击卖出税 (如 99)">
-                </div>
-                <button onclick="setAntiSnipe()" class="btn-warning">更新防狙击设置</button>
-            </div>
-
-            <!-- 修改限额 -->
-            <div class="section">
-                <h3>📊 修改持仓与交易限额</h3>
-                <p style="font-size: 12px; color: #888;">注意：请填写具体的代币数量（带18位小数的原始数值）</p>
-                <input type="text" id="maxWallet" placeholder="单地址最大持仓量">
-                <input type="text" id="maxTx" placeholder="单笔最大交易量">
-                <button onclick="setLimits()" class="btn-primary">更新限额</button>
-            </div>
-
-            <!-- 黑名单管理 -->
-            <div class="section">
-                <h3>🚫 黑名单管理</h3>
-                <input type="text" id="blackAddr" placeholder="输入要操作的钱包地址">
-                <div class="grid-2">
-                    <button onclick="setBlacklist(true)" class="btn-danger">拉黑地址</button>
-                    <button onclick="setBlacklist(false)" class="btn-success">解除拉黑</button>
+                <div class="lg:w-1/2 animate-float">
+                    <img src="https://picsum.photos/id/1/600/500" alt="Raymond区块链科技" 
+                         class="w-full max-w-lg mx-auto rounded-2xl shadow-2xl shadow-secondary/20 object-cover">
                 </div>
             </div>
-
         </div>
-    </div>
+    </section>
 
+    <!-- 关于我们 -->
+    <section id="about" class="py-20 bg-dark relative">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold mb-4">
+                    <span class="lang-zh">关于 <span class="bg-gradient-to-r from-blue-400 to-purple-500 text-gradient">Raymond</span></span>
+                    <span class="lang-en">About <span class="bg-gradient-to-r from-blue-400 to-purple-500 text-gradient">Raymond</span></span>
+                </h2>
+                <p class="text-gray-400 max-w-2xl mx-auto">
+                    <span class="lang-zh">全球顶尖的区块链技术研发与生态运营公司，致力于推动区块链技术商业化落地</span>
+                    <span class="lang-en">Top global blockchain R&D and ecosystem operator, committed to commercializing blockchain technology.</span>
+                </p>
+            </div>
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-primary/50 p-8 rounded-2xl border border-gray-800 hover:border-secondary transition-all hover:shadow-lg hover:shadow-secondary/10">
+                    <div class="w-14 h-14 rounded-xl bg-secondary/20 flex items-center justify-center mb-6">
+                        <i class="fa fa-globe text-2xl text-secondary"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">
+                        <span class="lang-zh">全球布局</span>
+                        <span class="lang-en">Global Layout</span>
+                    </h3>
+                    <p class="text-gray-400">
+                        <span class="lang-zh">业务覆盖全球多个国家和地区，构建国际化区块链价值网络，连接全球用户与技术生态</span>
+                        <span class="lang-en">Business across worldwide regions, building an international blockchain value network.</span>
+                    </p>
+                </div>
+                <div class="bg-primary/50 p-8 rounded-2xl border border-gray-800 hover:border-secondary transition-all hover:shadow-lg hover:shadow-secondary/10">
+                    <div class="w-14 h-14 rounded-xl bg-accent/20 flex items-center justify-center mb-6">
+                        <i class="fa fa-shield text-2xl text-accent"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">
+                        <span class="lang-zh">安全可信</span>
+                        <span class="lang-en">Security & Trust</span>
+                    </h3>
+                    <p class="text-gray-400">
+                        <span class="lang-zh">采用银行级加密算法与分布式账本技术，保障资产安全与交易可信，行业顶级安全标准</span>
+                        <span class="lang-en">Bank-level encryption & distributed ledger to ensure asset and transaction security.</span>
+                    </p>
+                </div>
+                <div class="bg-primary/50 p-8 rounded-2xl border border-gray-800 hover:border-secondary transition-all hover:shadow-lg hover:shadow-secondary/10">
+                    <div class="w-14 h-14 rounded-xl bg-blue-500/20 flex items-center justify-center mb-6">
+                        <i class="fa fa-lightbulb-o text-2xl text-blue-500"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-3">
+                        <span class="lang-zh">技术创新</span>
+                        <span class="lang-en">Tech Innovation</span>
+                    </h3>
+                    <p class="text-gray-400">
+                        <span class="lang-zh">持续研发区块链底层技术，突破性能瓶颈，实现毫秒级交易，支持百万级并发处理能力</span>
+                        <span class="lang-en">Independent underlying tech, millisecond transactions and millions-level TPS.</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- RAYC 生态币 -->
+    <section id="ryt" class="py-20 bg-primary relative overflow-hidden">
+        <div class="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-secondary/5 to-accent/5 z-0"></div>
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="flex flex-col lg:flex-row items-center gap-12">
+                <div class="lg:w-1/2 animate-float">
+                    <img src="https://picsum.photos/id/201/600/500" alt="RAYC生态币" 
+                         class="w-full max-w-lg mx-auto rounded-2xl shadow-2xl shadow-accent/20 object-cover">
+                </div>
+                <div class="lg:w-1/2 space-y-6">
+                    <h2 class="text-4xl font-bold">
+                        <span class="bg-gradient-to-r from-accent to-blue-500 text-gradient">RAYC</span>
+                        <span class="lang-zh"> 生态通证</span>
+                        <span class="lang-en"> Ecosystem Token</span>
+                    </h2>
+                    <p class="text-lg text-gray-300 leading-relaxed">
+                        <span class="lang-zh">RAYC 是 Raymond Chain 生态核心通证，全称 Raymond Token，贯穿整个生态系统的价值流通与权益凭证，拥有无限应用场景与升值空间。</span>
+                        <span class="lang-en">RAYC is the core token of Raymond Chain. As the value carrier and equity certificate, it has rich application scenarios and great potential.</span>
+                    </p>
+                    <div class="grid grid-cols-2 gap-4">
+                        <div class="bg-dark/50 p-4 rounded-xl border border-gray-800">
+                            <h4 class="font-bold text-accent">
+                                <span class="lang-zh">总发行量</span>
+                                <span class="lang-en">Total Supply</span>
+                            </h4>
+                            <p class="text-2xl font-bold">275000000</p>
+                        </div>
+                        <div class="bg-dark/50 p-4 rounded-xl border border-gray-800">
+                            <h4 class="font-bold text-accent">
+                                <span class="lang-zh">共识机制</span>
+                                <span class="lang-en">Consensus</span>
+                            </h4>
+                            <p class="text-2xl font-bold">DPoS</p>
+                        </div>
+                        <div class="bg-dark/50 p-4 rounded-xl border border-gray-800">
+                            <h4 class="font-bold text-accent">
+                                <span class="lang-zh">交易速度</span>
+                                <span class="lang-en">TPS Speed</span>
+                            </h4>
+                            <p class="text-2xl font-bold">Millisecond</p>
+                        </div>
+                        <div class="bg-dark/50 p-4 rounded-xl border border-gray-800">
+                            <h4 class="font-bold text-accent">
+                                <span class="lang-zh">生态应用</span>
+                                <span class="lang-en">Application</span>
+                            </h4>
+                            <p class="text-2xl font-bold">Full Scenarios</p>
+                        </div>
+                    </div>
+                    <a href="https://www.raymondchain.com/raymond-rayc/web-5.html" target="_blank" rel="noopener noreferrer" class="px-8 py-3 rounded-full bg-gradient-to-r from-accent to-blue-500 text-white font-semibold text-lg hover:shadow-lg hover:shadow-accent/30 transition-all">
+                        <span class="lang-zh">获取 RAYC</span>
+                        <span class="lang-en">Get RAYC</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 技术优势 -->
+    <section id="tech" class="py-20 bg-dark">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="text-4xl font-bold mb-4">
+                    <span class="lang-zh">核心 <span class="bg-gradient-to-r from-blue-400 to-purple-500 text-gradient">技术优势</span></span>
+                    <span class="lang-en">Core <span class="bg-gradient-to-r from-blue-400 to-purple-500 text-gradient">Tech Advantages</span></span>
+                </h2>
+                <p class="text-gray-400 max-w-2xl mx-auto">
+                    <span class="lang-zh">基于自研底层公链，突破传统区块链技术瓶颈，引领行业创新</span>
+                    <span class="lang-en">Self-developed public chain, breaking traditional blockchain limitations.</span>
+                </p>
+            </div>
+            <div class="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div class="bg-primary/30 p-6 rounded-xl border border-gray-800 hover:border-blue-500 transition-all">
+                    <i class="fa fa-bolt text-3xl text-blue-500 mb-4"></i>
+                    <h3 class="text-xl font-bold mb-2">
+                        <span class="lang-zh">高性能</span>
+                        <span class="lang-en">High Performance</span>
+                    </h3>
+                    <p class="text-gray-400">
+                        <span class="lang-zh">每秒处理10万+交易，远超行业主流公链，满足大规模商业应用</span>
+                        <span class="lang-en">100,000+ TPS, supporting large-scale commercial use.</span>
+                    </p>
+                </div>
+                <div class="bg-primary/30 p-6 rounded-xl border border-gray-800 hover:border-purple-500 transition-all">
+                    <i class="fa fa-lock text-3xl text-purple-500 mb-4"></i>
+                    <h3 class="text-xl font-bold mb-2">
+                        <span class="lang-zh">高安全</span>
+                        <span class="lang-en">High Security</span>
+                    </h3>
+                    <p class="text-gray-400">
+                        <span class="lang-zh">多层加密防护，去中心化节点验证，杜绝黑客攻击与数据篡改</span>
+                        <span class="lang-en">Multi-layer encryption & decentralized verification against attacks.</span>
+                    </p>
+                </div>
+                <div class="bg-primary/30 p-6 rounded-xl border border-gray-800 hover:border-accent transition-all">
+                    <i class="fa fa-code-fork text-3xl text-accent mb-4"></i>
+                    <h3 class="text-xl font-bold mb-2">
+                        <span class="lang-zh">易扩展</span>
+                        <span class="lang-en">Scalability</span>
+                    </h3>
+                    <p class="text-gray-400">
+                        <span class="lang-zh">模块化架构设计，支持DAPP、NFT、DeFi等全生态应用开发</span>
+                        <span class="lang-en">Modular design for DApp, NFT, DeFi and more applications.</span>
+                    </p>
+                </div>
+                <div class="bg-primary/30 p-6 rounded-xl border border-gray-800 hover:border-secondary transition-all">
+                    <i class="fa fa-users text-3xl text-secondary mb-4"></i>
+                    <h3 class="text-xl font-bold mb-2">
+                        <span class="lang-zh">去中心化</span>
+                        <span class="lang-en">Decentralized</span>
+                    </h3>
+                    <p class="text-gray-400">
+                        <span class="lang-zh">全球分布式节点网络，无中心化管控，真正实现社区自治</span>
+                        <span class="lang-en">Global distributed nodes, fully community autonomous.</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 联系我们 / 页脚 -->
+    <footer id="contact" class="bg-dark pt-20 pb-10 border-t border-gray-800">
+        <div class="container mx-auto px-4">
+            <div class="grid md:grid-cols-4 gap-10 mb-10">
+                <div class="space-y-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-10 h-10 rounded-lg bg-gradient-to-r from-secondary to-accent flex items-center justify-center">
+                            <span class="text-white text-xl font-bold">R</span>
+                        </div>
+                        <h2 class="text-2xl font-bold bg-gradient-to-r from-blue-400 to-purple-500 text-gradient">
+                            Raymond Chain
+                        </h2>
+                    </div>
+                    <p class="text-gray-400">
+                        <span class="lang-zh">构建未来区块链生态，创造数字价值新时代</span>
+                        <span class="lang-en">Build future blockchain ecosystem, create new digital value era.</span>
+                    </p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">
+                        <span class="lang-zh">快速链接</span>
+                        <span class="lang-en">Quick Links</span>
+                    </h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="#home" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">首页</span><span class="lang-en">Home</span>
+                        </a></li>
+                        <li><a href="#about" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">关于我们</span><span class="lang-en">About Us</span>
+                        </a></li>
+                        <li><a href="#ryt" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">RAYC生态</span><span class="lang-en">RAYC Ecosystem</span>
+                        </a></li>
+                        <li><a href="#tech" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">技术优势</span><span class="lang-en">Tech Advantages</span>
+                        </a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">
+                        <span class="lang-zh">资源中心</span>
+                        <span class="lang-en">Resources</span>
+                    </h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li><a href="https://www.raymondrtc.com/raymond/white-paper.html" target="_blank" rel="noopener noreferrer" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">白皮书</span><span class="lang-en">Whitepaper</span>
+                        </a></li>
+                        <li><a href="#" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">开发者文档</span><span class="lang-en">Docs</span>
+                        </a></li>
+                        <li><a href="#" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">新闻动态</span><span class="lang-en">News</span>
+                        </a></li>
+                        <li><a href="#" class="hover:text-accent transition-colors">
+                            <span class="lang-zh">常见问题</span><span class="lang-en">FAQ</span>
+                        </a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-bold mb-4">
+                        <span class="lang-zh">联系我们</span>
+                        <span class="lang-en">Contact Us</span>
+                    </h3>
+                    <ul class="space-y-2 text-gray-400">
+                        <li class="flex items-center gap-2">
+                            <i class="fa fa-envelope text-accent"></i>
+                            <span>contact@raymondchain.com</span>
+                        </li>
+                        <li class="flex items-center gap-2">
+                            <i class="fa fa-map-marker text-accent"></i>
+                            <span>
+                                <span class="lang-zh">全球区块链科技园区</span>
+                                <span class="lang-en">Global Blockchain Tech Park</span>
+                            </span>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            <hr class="border-gray-800 mb-8">
+            <div class="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div class="flex gap-4">
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-blue-500 transition-all" title="Twitter">
+                        <i class="fa fa-twitter text-white"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-purple-500 transition-all" title="Telegram">
+                        <i class="fa fa-telegram text-white"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-red-500 transition-all" title="Youtube">
+                        <i class="fa fa-youtube-play text-white"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-blue-600 transition-all" title="Linkedin">
+                        <i class="fa fa-linkedin text-white"></i>
+                    </a>
+                    <a href="#" class="w-10 h-10 rounded-full bg-gray-800 flex items-center justify-center hover:bg-green-500 transition-all" title="WeChat">
+                        <i class="fa fa-weixin text-white"></i>
+                    </a>
+                </div>
+                <p class="text-gray-500 text-sm">© 2025 Raymond Chain. All Rights Reserved.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JS 脚本 -->
     <script>
-        let signer, contract;
-        // 你的 SafeToken 合约 ABI (包含了所有可调用的函数接口)
-        const abi = [
-            "function tradingEnabled() view returns (bool)",
-            "function enableTrading() external",
-            "function setTaxes(uint256 _buy, uint256 _sell) external",
-            "function setAntiSnipeParams(uint256 _duration, uint256 _buyTax, uint256 _sellTax) external",
-            "function setLimits(uint256 _maxWallet, uint256 _maxTx) external",
-            "function setBlacklist(address[] calldata accounts, bool value) external"
-        ];
+        const langBtn = document.getElementById('langBtn');
+        const langBtnMobile = document.getElementById('langBtnMobile');
+        let isZh = false;
 
-        // 1. 连接 MetaMask 钱包
-        document.getElementById('connectBtn').addEventListener('click', async () => {
-            if (window.ethereum) {
-                try {
-                    const provider = new ethers.providers.Web3Provider(window.ethereum);
-                    await provider.send("eth_requestAccounts", []);
-                    signer = provider.getSigner();
-                    const address = await signer.getAddress();
-                    document.getElementById('walletStatus').innerText = "✅ 已连接: " + address;
-                    document.getElementById('connectBtn').style.display = 'none';
-                } catch (error) {
-                    alert("连接钱包失败: " + error.message);
+        function switchLang() {
+            const zhList = document.querySelectorAll('.lang-zh');
+            const enList = document.querySelectorAll('.lang-en');
+            isZh = !isZh;
+            if(isZh){
+                zhList.forEach(el => el.style.display = 'inline');
+                enList.forEach(el => el.style.display = 'none');
+                document.documentElement.lang = 'zh-CN';
+            }else{
+                zhList.forEach(el => el.style.display = 'none');
+                enList.forEach(el => el.style.display = 'inline');
+                document.documentElement.lang = 'en';
+            }
+        }
+        langBtn.addEventListener('click', switchLang);
+        langBtnMobile.addEventListener('click', switchLang);
+
+        // 粒子背景
+        particlesJS("particles-js", {
+            particles: {
+                number: { value: 80 },
+                color: { value: "#7E22CE" },
+                shape: { type: "circle" },
+                opacity: { value: 0.5 },
+                size: { value: 3 },
+                line_linked: {
+                    enable: true,
+                    distance: 150,
+                    color: "#7E22CE",
+                    opacity: 0.2,
+                    width: 1
+                },
+                move: {
+                    enable: true,
+                    speed: 1,
+                    direction: "none",
+                    random: true,
+                    straight: false,
+                    out_mode: "out",
+                    bounce: false
                 }
+            },
+            interactivity: {
+                detect_on: "canvas",
+                events: {
+                    onhover: { enable: true, mode: "grab" },
+                    onclick: { enable: true, mode: "push" }
+                }
+            },
+            retina_detect: true
+        });
+
+        // 导航栏滚动效果
+        const navbar = document.getElementById("navbar");
+        window.addEventListener("scroll", () => {
+            if (window.scrollY > 50) {
+                navbar.classList.add("py-2");
+                navbar.classList.add("shadow-lg");
             } else {
-                alert("请先安装 MetaMask 钱包插件！");
+                navbar.classList.remove("py-2");
+                navbar.classList.remove("shadow-lg");
             }
         });
 
-        // 2. 加载代币合约
-        function loadContract() {
-            const addr = document.getElementById('contractAddress').value;
-            if (!signer) return alert("请先连接钱包！");
-            if (!addr) return alert("请输入合约地址！");
-            try {
-                contract = new ethers.Contract(addr, abi, signer);
-                document.getElementById('controls').style.display = 'block';
-                alert("合约加载成功！现在可以管理代币了。");
-            } catch (e) {
-                alert("加载失败，请检查合约地址是否正确！");
-            }
-        }
+        // 移动端菜单
+        const menuBtn = document.getElementById("menuBtn");
+        const mobileMenu = document.getElementById("mobileMenu");
+        menuBtn.addEventListener("click", () => {
+            mobileMenu.classList.toggle("hidden");
+        });
 
-        // 3. 开启交易
-        async function enableTrading() {
-            if (!confirm("确定要开启交易吗？开启后将无法关闭，且防狙击倒计时将开始！")) return;
-            try {
-                const tx = await contract.enableTrading();
-                alert("交易正在开启，哈希: " + tx.hash);
-                await tx.wait();
-                alert("✅ 交易已成功开启！");
-            } catch (e) { alert("操作失败: " + e.message); }
-        }
-
-        // 4. 修改基础税费
-        async function setTaxes() {
-            const buy = document.getElementById('buyTax').value;
-            const sell = document.getElementById('sellTax').value;
-            if (!buy || !sell) return alert("请输入买入和卖出税率！");
-            try {
-                // 注意：合约要求输入的是 basis points (100 = 1%)，这里直接按百分比输入，代码里帮你乘100
-                const tx = await contract.setTaxes(buy * 100, sell * 100);
-                await tx.wait();
-                alert("✅ 基础税费修改成功！");
-            } catch (e) { alert("操作失败: " + e.message); }
-        }
-
-        // 5. 修改防狙击参数
-        async function setAntiSnipe() {
-            const duration = document.getElementById('snipeDuration').value;
-            const buyTax = document.getElementById('snipeBuyTax').value;
-            const sellTax = document.getElementById('snipeSellTax').value;
-            if (!duration || !buyTax || !sellTax) return alert("请填写完整的防狙击参数！");
-            try {
-                const tx = await contract.setAntiSnipeParams(duration, buyTax * 100, sellTax * 100);
-                await tx.wait();
-                alert("✅ 防狙击参数修改成功！");
-            } catch (e) { alert("操作失败: " + e.message); }
-        }
-
-        // 6. 修改限额
-        async function setLimits() {
-            const maxWallet = document.getElementById('maxWallet').value;
-            const maxTx = document.getElementById('maxTx').value;
-            if (!maxWallet || !maxTx) return alert("请输入限额数值！");
-            try {
-                const tx = await contract.setLimits(maxWallet, maxTx);
-                await tx.wait();
-                alert("✅ 限额修改成功！");
-            } catch (e) { alert("操作失败: " + e.message); }
-        }
-
-        // 7. 黑名单管理
-        async function setBlacklist(isBlacklisted) {
-            const addr = document.getElementById('blackAddr').value;
-            if (!addr) return alert("请输入要操作的钱包地址！");
-            try {
-                // 合约要求传入地址数组，所以这里用 [addr]
-                const tx = await contract.setBlacklist([addr], isBlacklisted);
-                await tx.wait();
-                alert(isBlacklisted ? "✅ 已成功拉黑该地址！" : "✅ 已成功解除拉黑！");
-            } catch (e) { alert("操作失败: " + e.message); }
-        }
+        // 平滑滚动
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
+                if (!mobileMenu.classList.contains('hidden')) {
+                    mobileMenu.classList.add('hidden');
+                }
+            });
+        });
     </script>
 </body>
 </html>
